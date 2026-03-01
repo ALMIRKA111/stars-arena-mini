@@ -157,18 +157,23 @@ function hideDeposit() {
     document.getElementById('deposit-screen').style.display = 'none';
 }
 
+// Вместо текущей имитации
 function processDeposit() {
-    const amount = parseInt(document.getElementById('deposit-amount').value);
+    const amount = document.getElementById('deposit-amount').value;
 
     if (!amount || amount < 10) {
-        tg.showAlert('❌ Минимальная сумма пополнения: 10⭐');
+        tg.showAlert('❌ Минимальная сумма: 10⭐');
         return;
     }
 
-    mockData.balance += amount;
-    updateUI();
-    hideDeposit();
-    tg.showAlert(`✅ Пополнено ${amount}⭐`);
+    // Отправляем данные боту через Telegram WebApp
+    tg.sendData(JSON.stringify({
+        action: 'deposit',
+        amount: parseInt(amount)
+    }));
+
+    // Закрываем Mini App — бот пришлёт счёт в чат
+    tg.close();
 }
 
 // Выбор метода пополнения
