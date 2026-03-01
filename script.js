@@ -244,6 +244,36 @@ if (promoBtn) {
         }
     }
 }
+// Функция для пополнения
+function showDeposit() {
+    let amount = prompt('Введите сумму пополнения (от 10⭐):');
+    if (amount) {
+        amount = parseInt(amount);
+        if (amount >= 10) {
+            // Отправляем данные боту
+            tg.sendData(JSON.stringify({
+                action: 'deposit',
+                amount: amount
+            }));
+            
+            tg.showPopup({
+                title: 'Запрос отправлен',
+                message: `Ожидайте счёт на ${amount}⭐`,
+                buttons: [{ type: 'ok' }]
+            });
+            
+            tg.close();
+        } else {
+            tg.showAlert('❌ Минимальная сумма: 10⭐');
+        }
+    }
+}
+
+// Функция для вывода
+function showWithdraw() {
+    tg.showAlert('Вывод временно недоступен');
+}
 
 // Инициализация
+
 updateUI();
