@@ -5,97 +5,115 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stars Arena</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background: #0a0f1e; color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { max-width: 400px; width: 100%; padding: 20px; }
+        .header { display: flex; justify-content: space-between; background: #1a1f30; padding: 15px; border-radius: 15px; margin-bottom: 20px; }
+        .balance { display: flex; gap: 5px; }
+        .balance-value { color: #ffd700; font-weight: bold; }
+        .bank { background: #1a1f30; padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 20px; }
+        .bank-value { font-size: 48px; color: #ffd700; font-weight: bold; }
+        .profile-card { background: #1a1f30; padding: 20px; border-radius: 15px; }
+        .profile-actions { display: flex; gap: 10px; margin-bottom: 20px; }
+        .profile-action { flex: 1; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .deposit-btn { background: #4a90e2; color: white; }
+        .withdraw-btn { background: #2a2f45; color: white; }
+        .bottom-nav { display: flex; gap: 10px; margin-top: 20px; background: #1a1f30; padding: 10px; border-radius: 15px; }
+        .nav-btn { flex: 1; padding: 10px; border: none; background: transparent; color: #8e9ab0; border-radius: 10px; cursor: pointer; }
+        .nav-btn.active { background: #4a90e2; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .deposit-section { margin-top: 20px; }
+        .deposit-input { width: 100%; padding: 15px; background: #1a1f30; border: 2px solid #2a2f45; border-radius: 10px; color: white; margin-bottom: 10px; }
+        .deposit-submit { width: 100%; padding: 15px; background: #4a90e2; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; }
+    </style>
 </head>
 <body>
     <div class="container">
-        <!-- ШАПКА -->
+        <!-- Шапка -->
         <div class="header">
             <div class="balance">
                 <span class="balance-value" id="balance">0</span>
-                <span class="balance-currency">⭐</span>
+                <span>⭐</span>
             </div>
-            <div class="user" id="username">Загрузка...</div>
+            <div id="username">Загрузка...</div>
         </div>
 
-        <!-- ЭКРАН PVP -->
-        <div id="pvp-tab" class="tab-content" style="display: block;">
+        <!-- Вкладки -->
+        <div class="bottom-nav">
+            <button class="nav-btn active" onclick="showTab('pvp')">PVP</button>
+            <button class="nav-btn" onclick="showTab('profile')">Профиль</button>
+        </div>
+
+        <!-- Экран PVP -->
+        <div id="pvp-tab" class="tab-content active">
             <div class="bank">
-                <div class="bank-label">БАНК</div>
-                <div class="bank-value" id="bank-value">0</div>
-                <div class="bank-currency">⭐</div>
+                <div>БАНК</div>
+                <div class="bank-value" id="bank">0</div>
             </div>
-
-            <div class="players-section">
-                <div class="players-header">
-                    <span>#</span>
-                    <span>Цвет</span>
-                    <span>Шанс</span>
-                </div>
-                <div id="players-list" class="players-list">
-                    <div class="empty-players">Пока нет ставок</div>
-                </div>
-            </div>
-
-            <div class="bet-info" id="bet-info" style="display: none;">
-                <span>Ставка: <span id="bet-amount-display">0</span>⭐</span>
-                <span>Шанс: <span id="bet-percent-display">0</span>%</span>
-                <span>Цвет: <span id="bet-color-display">Нет</span></span>
-            </div>
-
-            <div class="amount-input-group">
-                <input type="number" id="bet-amount-input" class="amount-input" placeholder="Введи сумму ставки" min="1" step="1">
-                <span class="input-currency">⭐</span>
-            </div>
-
-            <button class="ok-btn" id="ok-btn">ОК</button>
-            <button class="place-btn" id="place-bet" style="display: none;">СДЕЛАТЬ СТАВКУ</button>
         </div>
 
-        <!-- ЭКРАН ПРОФИЛЬ -->
-        <div id="profile-tab" class="tab-content" style="display: none;">
+        <!-- Экран Профиль -->
+        <div id="profile-tab" class="tab-content">
             <div class="profile-card">
                 <div class="profile-actions">
-                    <button class="profile-action" id="deposit-btn">📥 Пополнить</button>
-                    <button class="profile-action" id="withdraw-btn">📤 Вывести</button>
+                    <button class="profile-action deposit-btn" onclick="showDeposit()">📥 Пополнить</button>
+                    <button class="profile-action withdraw-btn" onclick="showWithdraw()">📤 Вывести</button>
                 </div>
-
-                <div class="stats-row">
-                    <div class="stat-item">
-                        <div class="stat-label">Баланс</div>
-                        <div class="stat-value" id="profile-balance">0</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Всего игр</div>
-                        <div class="stat-value" id="profile-games">0</div>
-                    </div>
-                </div>
-                <div class="stats-row">
-                    <div class="stat-item">
-                        <div class="stat-label">Побед</div>
-                        <div class="stat-value" id="profile-wins">0</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Процент</div>
-                        <div class="stat-value" id="profile-winrate">0%</div>
-                    </div>
-                </div>
-
-                <div class="profile-menu">
-                    <button class="profile-menu-item" id="partner-btn">👥 Партнёрская программа</button>
-                    <button class="profile-menu-item" id="support-btn">🆘 Поддержка</button>
-                    <button class="profile-menu-item" id="promo-btn">🎁 Промокод</button>
-                </div>
+                <div>Баланс: <span id="profile-balance">0</span> ⭐</div>
             </div>
-        </div>
-
-        <!-- НИЖНЯЯ НАВИГАЦИЯ -->
-        <div class="bottom-nav">
-            <button class="nav-btn active" id="pvp-btn">PVP</button>
-            <button class="nav-btn" id="profile-btn">Профиль</button>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        let userBalance = 0;
+
+        function updateUI() {
+            document.getElementById('balance').innerText = userBalance;
+            document.getElementById('profile-balance').innerText = userBalance;
+        }
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(tab + '-tab').classList.add('active');
+
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function showDeposit() {
+            let amount = prompt('Введите сумму пополнения (от 10⭐):');
+            if (amount) {
+                amount = parseInt(amount);
+                if (amount >= 10) {
+                    tg.sendData(JSON.stringify({
+                        action: 'deposit',
+                        amount: amount
+                    }));
+
+                    tg.showPopup({
+                        title: 'Запрос отправлен',
+                        message: 'Ожидайте счёт от бота',
+                        buttons: [{ type: 'ok' }]
+                    });
+
+                    tg.close();
+                } else {
+                    tg.showAlert('❌ Минимальная сумма: 10⭐');
+                }
+            }
+        }
+
+        function showWithdraw() {
+            tg.showAlert('Вывод временно недоступен');
+        }
+
+        updateUI();
+    </script>
 </body>
 </html>
