@@ -400,8 +400,3 @@ function showWinner(winner) {
 
 // Инициализация
 updateUI();
-
-// Кнопка Telegram
-tg.MainButton.setText('🔄 Обновить');
-tg.MainButton.onClick(updateUI);
-tg.MainButton.show();
