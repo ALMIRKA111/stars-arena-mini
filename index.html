@@ -579,334 +579,374 @@
     </div>
 
     <script>
-        let tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+        // Ждём полной загрузки DOM перед назначением обработчиков
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM загружен, инициализация...');
 
-        // ===== КОНФИГУРАЦИЯ =====
-        const API_URL = 'http://192.168.1.36:8080';
+            let tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.expand();
 
-        // Данные
-        let mockData = {
-            balance: 0,
-            bank: 0,
-            players: [],
-            wins: 0,
-            partnerEarned: 0
-        };
+            // ===== КОНФИГУРАЦИЯ =====
+            const API_URL = 'http://192.168.1.36:8080';
 
-        let isSpinning = false;
+            // Данные
+            let mockData = {
+                balance: 0,
+                bank: 0,
+                players: [],
+                wins: 0,
+                partnerEarned: 0
+            };
 
-        // Получаем пользователя
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            document.getElementById('username').innerText = tg.initDataUnsafe.user.first_name || 'Игрок';
-        } else {
-            document.getElementById('username').innerText = 'Тестовый режим';
-        }
+            let isSpinning = false;
 
-        // ===== ФУНКЦИЯ ПОПОЛНЕНИЯ =====
-        async function processDeposit(amount) {
-            try {
-                console.log('processDeposit вызвана, amount =', amount);
-
-                const response = await fetch(`${API_URL}/api/create-invoice`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ amount: amount })
-                });
-
-                console.log('Статус ответа:', response.status);
-                const data = await response.json();
-                console.log('Данные ответа:', data);
-
-                if (!data.success) {
-                    tg.showAlert('❌ Ошибка создания платежа');
-                    return;
-                }
-
-                tg.openInvoice(data.link, function(status) {
-                    console.log('Статус оплаты:', status);
-                    if (status === 'paid') {
-                        mockData.balance += amount;
-                        updateUI();
-                        tg.showPopup({
-                            title: '✅ Успешно',
-                            message: `Пополнено ${amount}⭐`,
-                            buttons: [{ type: 'ok' }]
-                        });
-                    } else if (status === 'failed') {
-                        tg.showAlert('❌ Ошибка оплаты');
-                    } else if (status === 'cancelled') {
-                        tg.showAlert('❌ Платеж отменен');
-                    }
-                });
-
-            } catch (error) {
-                console.error('Ошибка:', error);
-                tg.showAlert('❌ Ошибка соединения с сервером');
-            }
-        }
-
-        // ===== ОСТАЛЬНЫЕ ФУНКЦИИ =====
-        function updateUI() {
-            document.getElementById('balance').innerText = mockData.balance + '⭐';
-            document.getElementById('profile-balance').innerText = mockData.balance + '⭐';
-            document.getElementById('bank').innerText = mockData.bank + '⭐';
-            document.getElementById('profile-games').innerText = mockData.players.length;
-            document.getElementById('profile-wins').innerText = mockData.wins;
-            const winrate = mockData.players.length > 0 ? ((mockData.wins / mockData.players.length) * 100).toFixed(1) : 0;
-            document.getElementById('profile-winrate').innerText = winrate + '%';
-
-            const playersList = document.getElementById('players-list');
-            if (mockData.players.length === 0) {
-                playersList.innerHTML = '<div style="text-align: center; padding: 20px; color: #8e9ab0;">Пока нет ставок</div>';
+            // Получаем пользователя
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                document.getElementById('username').innerText = tg.initDataUnsafe.user.first_name || 'Игрок';
             } else {
-                let html = '';
-                mockData.players.forEach((player, index) => {
-                    html += `
-                        <div class="player-item ${player.isYou ? 'you' : ''}">
-                            <span>#${index + 1}</span>
-                            <span>${player.color}</span>
-                        </div>
-                    `;
-                });
-                playersList.innerHTML = html;
-            }
-        }
-
-        // Переключение вкладок
-        const pvpTab = document.getElementById('pvp-tab');
-        const profileTab = document.getElementById('profile-tab');
-        const pvpBtn = document.getElementById('pvp-btn');
-        const profileBtn = document.getElementById('profile-btn');
-
-        pvpBtn.addEventListener('click', () => {
-            pvpTab.classList.add('active');
-            profileTab.classList.remove('active');
-            pvpBtn.classList.add('active');
-            profileBtn.classList.remove('active');
-        });
-
-        profileBtn.addEventListener('click', () => {
-            profileTab.classList.add('active');
-            pvpTab.classList.remove('active');
-            profileBtn.classList.add('active');
-            pvpBtn.classList.remove('active');
-        });
-
-        // Экран пополнения
-        const walletScreen = document.getElementById('wallet-screen');
-
-        document.getElementById('deposit-btn').addEventListener('click', () => {
-            walletScreen.style.display = 'flex';
-        });
-
-        window.hideWallet = function() {
-            walletScreen.style.display = 'none';
-        };
-
-        // Выбор метода оплаты
-        document.querySelectorAll('.method-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            });
-        });
-
-        // Кнопка ВВОД (пополнение) - ИСПРАВЛЕНО!
-        document.getElementById('wallet-submit').addEventListener('click', async () => {
-            const amount = parseInt(document.getElementById('wallet-amount').value);
-
-            if (!amount || amount < 10) {
-                tg.showAlert('❌ Минимальная сумма: 10⭐');
-                return;
+                document.getElementById('username').innerText = 'Тестовый режим';
             }
 
-            await processDeposit(amount);
-            hideWallet();
-        });
+            // ===== ФУНКЦИЯ ПОПОЛНЕНИЯ =====
+            async function processDeposit(amount) {
+                try {
+                    console.log('processDeposit вызвана, amount =', amount);
 
-        // Экран вывода
-        const withdrawScreen = document.getElementById('withdraw-screen');
+                    const response = await fetch(`${API_URL}/api/create-invoice`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ amount: amount })
+                    });
 
-        document.getElementById('withdraw-btn').addEventListener('click', () => {
-            withdrawScreen.style.display = 'flex';
-        });
+                    console.log('Статус ответа:', response.status);
+                    const data = await response.json();
+                    console.log('Данные ответа:', data);
 
-        window.hideWithdraw = function() {
-            withdrawScreen.style.display = 'none';
-        };
-
-        // Кнопка ВЫВЕСТИ
-        document.getElementById('withdraw-submit').addEventListener('click', () => {
-            const amount = parseInt(document.getElementById('withdraw-amount').value);
-            const wallet = document.getElementById('wallet-address').value;
-
-            if (!amount || amount < 100) {
-                tg.showAlert('❌ Минимальная сумма: 100⭐');
-                return;
-            }
-
-            if (!wallet || wallet.length < 10) {
-                tg.showAlert('❌ Введите корректный адрес кошелька');
-                return;
-            }
-
-            if (amount > mockData.balance) {
-                tg.showAlert('❌ Недостаточно средств');
-                return;
-            }
-
-            tg.showPopup({
-                title: '✅ Заявка создана',
-                message: `Заявка на вывод ${amount}⭐ отправлена администратору`,
-                buttons: [{ type: 'ok' }]
-            });
-
-            mockData.balance -= amount;
-            updateUI();
-            hideWithdraw();
-        });
-
-        // Партнёрская программа
-        document.getElementById('partner-btn').addEventListener('click', () => {
-            const userId = tg.initDataUnsafe.user?.id || 0;
-            const refLink = `https://t.me/${tg.initDataUnsafe.user?.username || 'bot'}?start=ref_${userId}`;
-
-            tg.showPopup({
-                title: '👥 Партнёрская программа',
-                message: `Твоя ссылка:\n${refLink}\n\nПриглашай друзей и получай 10% от их ставок!\n\nТвой доход: ${mockData.partnerEarned}⭐`,
-                buttons: [
-                    { type: 'default', text: '📋 Копировать' },
-                    { type: 'ok', text: 'OK' }
-                ]
-            }, (btnId) => {
-                if (btnId === '📋 Копировать') {
-                    navigator.clipboard.writeText(refLink);
-                    tg.showAlert('✅ Ссылка скопирована!');
-                }
-            });
-        });
-
-        // Поддержка
-        document.getElementById('support-btn').addEventListener('click', () => {
-            tg.showPopup({
-                title: '🆘 Поддержка',
-                message: 'По всем вопросам обращайтесь к @support_bot',
-                buttons: [{ type: 'ok' }]
-            });
-        });
-
-        // Промокод
-        document.getElementById('promo-btn').addEventListener('click', () => {
-            const promo = prompt('Введите промокод:');
-            if (promo) {
-                if (promo.toLowerCase() === 'arena') {
-                    mockData.balance += 50;
-                    updateUI();
-                    tg.showAlert('✅ Промокод активирован! Получено 50⭐');
-                } else {
-                    tg.showAlert('❌ Неверный промокод');
-                }
-            }
-        });
-
-        // Крутить рулетку
-        function spinWheel() {
-            if (isSpinning) return;
-            isSpinning = true;
-
-            const wheel = document.getElementById('wheel');
-            const spins = 8 + Math.floor(Math.random() * 5);
-            const totalAngle = spins * 360;
-
-            wheel.style.transition = 'transform 6s cubic-bezier(0.25, 0.1, 0.15, 1)';
-            wheel.style.transform = `rotate(${totalAngle}deg)`;
-
-            setTimeout(() => {
-                if (mockData.players.length > 0) {
-                    const total = mockData.players.reduce((sum, p) => sum + p.amount, 0);
-                    const random = Math.random() * total;
-
-                    let cumulative = 0;
-                    let winner = null;
-                    for (const player of mockData.players) {
-                        cumulative += player.amount;
-                        if (random <= cumulative) {
-                            winner = player;
-                            break;
-                        }
+                    if (!data.success) {
+                        tg.showAlert('❌ Ошибка создания платежа');
+                        return;
                     }
 
-                    if (winner) {
-                        if (winner.isYou) {
-                            mockData.wins++;
-                            mockData.balance += mockData.bank;
-                            mockData.partnerEarned += mockData.bank * 0.1;
+                    tg.openInvoice(data.link, function(status) {
+                        console.log('Статус оплаты:', status);
+                        if (status === 'paid') {
+                            mockData.balance += amount;
+                            updateUI();
+                            tg.showPopup({
+                                title: '✅ Успешно',
+                                message: `Пополнено ${amount}⭐`,
+                                buttons: [{ type: 'ok' }]
+                            });
+                        } else if (status === 'failed') {
+                            tg.showAlert('❌ Ошибка оплаты');
+                        } else if (status === 'cancelled') {
+                            tg.showAlert('❌ Платеж отменен');
                         }
+                    });
 
-                        const popup = document.createElement('div');
-                        popup.className = 'result-popup';
-                        popup.innerHTML = `
-                            <div class="result-content">
-                                <div class="result-title">🏆 ПОБЕДИТЕЛЬ</div>
-                                <div class="result-text">${winner.color}</div>
-                                <div class="result-text">${winner.amount}⭐</div>
-                                <button class="result-ok" onclick="this.parentElement.parentElement.remove()">OK</button>
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    tg.showAlert('❌ Ошибка соединения с сервером');
+                }
+            }
+
+            // ===== ФУНКЦИИ ОБНОВЛЕНИЯ =====
+            function updateUI() {
+                document.getElementById('balance').innerText = mockData.balance + '⭐';
+                document.getElementById('profile-balance').innerText = mockData.balance + '⭐';
+                document.getElementById('bank').innerText = mockData.bank + '⭐';
+                document.getElementById('profile-games').innerText = mockData.players.length;
+                document.getElementById('profile-wins').innerText = mockData.wins;
+                const winrate = mockData.players.length > 0 ? ((mockData.wins / mockData.players.length) * 100).toFixed(1) : 0;
+                document.getElementById('profile-winrate').innerText = winrate + '%';
+
+                const playersList = document.getElementById('players-list');
+                if (mockData.players.length === 0) {
+                    playersList.innerHTML = '<div style="text-align: center; padding: 20px; color: #8e9ab0;">Пока нет ставок</div>';
+                } else {
+                    let html = '';
+                    mockData.players.forEach((player, index) => {
+                        html += `
+                            <div class="player-item ${player.isYou ? 'you' : ''}">
+                                <span>#${index + 1}</span>
+                                <span>${player.color}</span>
                             </div>
                         `;
-                        document.body.appendChild(popup);
-                        popup.style.display = 'flex';
+                    });
+                    playersList.innerHTML = html;
+                }
+            }
 
-                        if (tg.HapticFeedback) {
-                            tg.HapticFeedback.notification('success');
+            // ===== НАЗНАЧЕНИЕ ОБРАБОТЧИКОВ =====
+
+            // Переключение вкладок
+            const pvpBtn = document.getElementById('pvp-btn');
+            const profileBtn = document.getElementById('profile-btn');
+            const pvpTab = document.getElementById('pvp-tab');
+            const profileTab = document.getElementById('profile-tab');
+
+            if (pvpBtn) {
+                pvpBtn.addEventListener('click', () => {
+                    pvpTab.classList.add('active');
+                    profileTab.classList.remove('active');
+                    pvpBtn.classList.add('active');
+                    profileBtn.classList.remove('active');
+                });
+            }
+
+            if (profileBtn) {
+                profileBtn.addEventListener('click', () => {
+                    profileTab.classList.add('active');
+                    pvpTab.classList.remove('active');
+                    profileBtn.classList.add('active');
+                    pvpBtn.classList.remove('active');
+                });
+            }
+
+            // Экран пополнения
+            const walletScreen = document.getElementById('wallet-screen');
+            const depositBtn = document.getElementById('deposit-btn');
+
+            if (depositBtn) {
+                depositBtn.addEventListener('click', () => {
+                    console.log('Кнопка пополнения нажата');
+                    walletScreen.style.display = 'flex';
+                });
+            } else {
+                console.error('Кнопка deposit-btn не найдена!');
+            }
+
+            window.hideWallet = function() {
+                walletScreen.style.display = 'none';
+            };
+
+            // Выбор метода оплаты
+            document.querySelectorAll('.method-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+
+            // Кнопка ВВОД (пополнение)
+            const walletSubmit = document.getElementById('wallet-submit');
+            if (walletSubmit) {
+                walletSubmit.addEventListener('click', async () => {
+                    const amount = parseInt(document.getElementById('wallet-amount').value);
+
+                    if (!amount || amount < 10) {
+                        tg.showAlert('❌ Минимальная сумма: 10⭐');
+                        return;
+                    }
+
+                    await processDeposit(amount);
+                    hideWallet();
+                });
+            }
+
+            // Экран вывода
+            const withdrawScreen = document.getElementById('withdraw-screen');
+            const withdrawBtn = document.getElementById('withdraw-btn');
+
+            if (withdrawBtn) {
+                withdrawBtn.addEventListener('click', () => {
+                    console.log('Кнопка вывода нажата');
+                    withdrawScreen.style.display = 'flex';
+                });
+            }
+
+            window.hideWithdraw = function() {
+                withdrawScreen.style.display = 'none';
+            };
+
+            // Кнопка ВЫВЕСТИ
+            const withdrawSubmit = document.getElementById('withdraw-submit');
+            if (withdrawSubmit) {
+                withdrawSubmit.addEventListener('click', () => {
+                    const amount = parseInt(document.getElementById('withdraw-amount').value);
+                    const wallet = document.getElementById('wallet-address').value;
+
+                    if (!amount || amount < 100) {
+                        tg.showAlert('❌ Минимальная сумма: 100⭐');
+                        return;
+                    }
+
+                    if (!wallet || wallet.length < 10) {
+                        tg.showAlert('❌ Введите корректный адрес кошелька');
+                        return;
+                    }
+
+                    if (amount > mockData.balance) {
+                        tg.showAlert('❌ Недостаточно средств');
+                        return;
+                    }
+
+                    tg.showPopup({
+                        title: '✅ Заявка создана',
+                        message: `Заявка на вывод ${amount}⭐ отправлена администратору`,
+                        buttons: [{ type: 'ok' }]
+                    });
+
+                    mockData.balance -= amount;
+                    updateUI();
+                    hideWithdraw();
+                });
+            }
+
+            // Партнёрская программа
+            const partnerBtn = document.getElementById('partner-btn');
+            if (partnerBtn) {
+                partnerBtn.addEventListener('click', () => {
+                    const userId = tg.initDataUnsafe.user?.id || 0;
+                    const refLink = `https://t.me/${tg.initDataUnsafe.user?.username || 'bot'}?start=ref_${userId}`;
+
+                    tg.showPopup({
+                        title: '👥 Партнёрская программа',
+                        message: `Твоя ссылка:\n${refLink}\n\nПриглашай друзей и получай 10% от их ставок!\n\nТвой доход: ${mockData.partnerEarned}⭐`,
+                        buttons: [
+                            { type: 'default', text: '📋 Копировать' },
+                            { type: 'ok', text: 'OK' }
+                        ]
+                    }, (btnId) => {
+                        if (btnId === '📋 Копировать') {
+                            navigator.clipboard.writeText(refLink);
+                            tg.showAlert('✅ Ссылка скопирована!');
+                        }
+                    });
+                });
+            }
+
+            // Поддержка
+            const supportBtn = document.getElementById('support-btn');
+            if (supportBtn) {
+                supportBtn.addEventListener('click', () => {
+                    tg.showPopup({
+                        title: '🆘 Поддержка',
+                        message: 'По всем вопросам обращайтесь к @support_bot',
+                        buttons: [{ type: 'ok' }]
+                    });
+                });
+            }
+
+            // Промокод
+            const promoBtn = document.getElementById('promo-btn');
+            if (promoBtn) {
+                promoBtn.addEventListener('click', () => {
+                    const promo = prompt('Введите промокод:');
+                    if (promo) {
+                        if (promo.toLowerCase() === 'arena') {
+                            mockData.balance += 50;
+                            updateUI();
+                            tg.showAlert('✅ Промокод активирован! Получено 50⭐');
+                        } else {
+                            tg.showAlert('❌ Неверный промокод');
                         }
                     }
-                }
-
-                isSpinning = false;
-                updateUI();
-            }, 6000);
-        }
-
-        // Кнопка СДЕЛАТЬ СТАВКУ
-        document.getElementById('place-bet').addEventListener('click', () => {
-            const amount = parseInt(document.getElementById('bet-input').value);
-
-            if (!amount || amount <= 0) {
-                tg.showAlert('❌ Введи сумму ставки');
-                return;
+                });
             }
 
-            if (amount > mockData.balance) {
-                tg.showAlert('❌ Недостаточно средств');
-                return;
+            // Крутить рулетку
+            function spinWheel() {
+                if (isSpinning) return;
+                isSpinning = true;
+
+                const wheel = document.getElementById('wheel');
+                const spins = 8 + Math.floor(Math.random() * 5);
+                const totalAngle = spins * 360;
+
+                wheel.style.transition = 'transform 6s cubic-bezier(0.25, 0.1, 0.15, 1)';
+                wheel.style.transform = `rotate(${totalAngle}deg)`;
+
+                setTimeout(() => {
+                    if (mockData.players.length > 0) {
+                        const total = mockData.players.reduce((sum, p) => sum + p.amount, 0);
+                        const random = Math.random() * total;
+
+                        let cumulative = 0;
+                        let winner = null;
+                        for (const player of mockData.players) {
+                            cumulative += player.amount;
+                            if (random <= cumulative) {
+                                winner = player;
+                                break;
+                            }
+                        }
+
+                        if (winner) {
+                            if (winner.isYou) {
+                                mockData.wins++;
+                                mockData.balance += mockData.bank;
+                                mockData.partnerEarned += mockData.bank * 0.1;
+                            }
+
+                            const popup = document.createElement('div');
+                            popup.className = 'result-popup';
+                            popup.innerHTML = `
+                                <div class="result-content">
+                                    <div class="result-title">🏆 ПОБЕДИТЕЛЬ</div>
+                                    <div class="result-text">${winner.color}</div>
+                                    <div class="result-text">${winner.amount}⭐</div>
+                                    <button class="result-ok" onclick="this.parentElement.parentElement.remove()">OK</button>
+                                </div>
+                            `;
+                            document.body.appendChild(popup);
+                            popup.style.display = 'flex';
+
+                            if (tg.HapticFeedback) {
+                                tg.HapticFeedback.notification('success');
+                            }
+                        }
+                    }
+
+                    isSpinning = false;
+                    updateUI();
+                }, 6000);
             }
 
-            const colors = ['🔴 Красный', '⚫️ Черный', '🟢 Зеленый'];
-            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            // Кнопка СДЕЛАТЬ СТАВКУ
+            const placeBetBtn = document.getElementById('place-bet');
+            if (placeBetBtn) {
+                placeBetBtn.addEventListener('click', () => {
+                    const amount = parseInt(document.getElementById('bet-input').value);
 
-            const newPlayer = {
-                color: randomColor,
-                amount: amount,
-                isYou: true
-            };
-            mockData.players.push(newPlayer);
-            mockData.bank += amount;
-            mockData.balance -= amount;
+                    if (!amount || amount <= 0) {
+                        tg.showAlert('❌ Введи сумму ставки');
+                        return;
+                    }
 
-            document.getElementById('bet-info').style.display = 'flex';
-            document.getElementById('bet-amount').innerText = amount;
-            document.getElementById('bet-color').innerText = randomColor;
+                    if (amount > mockData.balance) {
+                        tg.showAlert('❌ Недостаточно средств');
+                        return;
+                    }
 
+                    const colors = ['🔴 Красный', '⚫️ Черный', '🟢 Зеленый'];
+                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+                    const newPlayer = {
+                        color: randomColor,
+                        amount: amount,
+                        isYou: true
+                    };
+                    mockData.players.push(newPlayer);
+                    mockData.bank += amount;
+                    mockData.balance -= amount;
+
+                    document.getElementById('bet-info').style.display = 'flex';
+                    document.getElementById('bet-amount').innerText = amount;
+                    document.getElementById('bet-color').innerText = randomColor;
+
+                    updateUI();
+                    spinWheel();
+                });
+            }
+
+            // Инициализация
             updateUI();
-            spinWheel();
+            console.log('Инициализация завершена, кнопка deposit-btn:', document.getElementById('deposit-btn'));
         });
-
-        // Инициализация
-        updateUI();
     </script>
 </body>
 </html>
